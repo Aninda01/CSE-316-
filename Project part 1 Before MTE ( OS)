@@ -1,0 +1,103 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+struct Job {
+    string name;
+    int arrivalTime;
+    int estimatedRunTime;
+    int waitingTime;
+    double priority;
+
+    Job(string name, int arrivalTime, int estimatedRunTime) {
+        this->name = name;
+        this->arrivalTime = arrivalTime;
+        this->estimatedRunTime = estimatedRunTime;
+        this->waitingTime = 0;
+        this->priority = 1;
+    }
+
+    void updatePriority() {
+        this->priority = 1 + (double) this->waitingTime / this->estimatedRunTime;
+    }
+};
+
+bool compareArrivalTime(const Job& j1, const Job& j2) {
+    return j1.arrivalTime < j2.arrivalTime;
+}
+
+int main() {
+    // Get input from user
+    int numJobs;
+    cout << "Enter the number of jobs: ";
+    cin >> numJobs;
+    vector<Job> jobs;
+    for (int i = 0; i < numJobs; i++) {
+        string name;
+        int arrivalTime, estimatedRunTime;
+        cout << "Enter the name of job " << i + 1 << ": ";
+        cin >> name;
+        cout << "Enter the arrival time of job " << i + 1 << ": ";
+        cin >> arrivalTime;
+        cout << "Enter the estimated run time of job " << i + 1 << ": ";
+        cin >> estimatedRunTime;
+        jobs.push_back(Job(name, arrivalTime, estimatedRunTime));
+    }
+
+    // Sort the jobs by arrival time
+    sort(jobs.begin(), jobs.end(), compareArrivalTime);
+
+    // Set up variables for simulation
+    int currentTime = 0;
+    vector<Job> finishedJobs;
+
+    // Run the simulation
+    while (!jobs.empty()) {
+        // Get the job with the highest priority
+        Job& highestPriorityJob = *min_element(jobs.begin(), jobs.end(), [](const Job& j1, const Job& j2) {
+            return j1.priority < j2.priority;
+        });
+
+        // Update waiting time for all jobs in the queue
+        for (Job& job : jobs) {
+            if (&job != &highestPriorityJob) {
+                job.waitingTime++;
+                job.updatePriority();
+            }
+        }
+
+        // Update waiting time for finished jobs
+        for (Job& job : finishedJobs) {
+            if (&job != &highestPriorityJob) {
+                job.waitingTime += highestPriorityJob.estimatedRunTime;
+                job.updatePriority();
+            }
+        }
+
+        // Run the highest priority job for one unit of time
+        highestPriorityJob.waitingTime -= highestPriorityJob.estimatedRunTime;
+        currentTime++;
+        highestPriorityJob.updatePriority();
+
+        // Check if job is finished
+        if (highestPriorityJob.waitingTime <= 0) {
+            finishedJobs.push_back(highestPriorityJob);
+            jobs.erase(min_element(jobs.begin(), jobs.end(), [](const Job& j1, const Job& j2) {
+                return j1.name == j2.name;
+            }));
+        }
+
+        // Print current status
+        cout << "Time " << currentTime << ": Running job " << highestPriorityJob.name << endl;
+        for (Job& job : jobs) {
+            cout << "Job " << job.name << ": Priority = " << job.priority << endl;
+        }
+        cout << endl;
+    }
+
+    // Calculate individual and average waiting time
+    int totalWaitingTime = 0;
+    for (Job& job : finishedJobs) {
+        cout << "Job
